@@ -1,0 +1,26 @@
+{
+  "run_dir": "runs/ndnsim-exec",
+  "data": {
+    "num_clients": 2,
+    "client_names": ["Leaf1", "Leaf2"],
+    "samples_per_client": 32,
+    "dim": 8,
+    "seed": 7,
+    "client_bias_skew": 0.15
+  },
+  "training": {
+    "rounds": 2,
+    "local_epochs": 1,
+    "local_lr": 0.4
+  },
+  "network": {
+    "backend": "ndnsim",
+    "execute": true,
+    "ns3_root": "/path/to/ns-3",
+    "topology": "src/ndnSIM/examples/cfnagg/topologies/dcn.txt",
+    "agg_tree": "src/ndnSIM/examples/cfnagg/topologies/aggtree-dcn.txt",
+    "cc": "AIMD",
+    "sim_time": 5.0,
+    "seq": 1
+  }
+}

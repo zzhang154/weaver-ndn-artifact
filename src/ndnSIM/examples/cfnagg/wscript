@@ -1,0 +1,17 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def build(bld):
+    obj = bld.create_ns3_program('cfnagg-simulation', 
+                                 ['ndnSIM', 'internet', 'network', 'point-to-point'])
+    obj.source = [
+        'cfnagg-simulation.cpp',
+        '../../apps/cfnagg/cfn-producer-app.cpp',
+        '../../apps/cfnagg/cfn-aggregator-app.cpp',
+        '../../apps/cfnagg/cfn-root-app.cpp',
+        '../../apps/cfnagg/congestion-aimd.cpp',
+        '../../apps/cfnagg/congestion-bbr.cpp',
+        '../../apps/cfnagg/congestion-cubic.cpp',
+        '../../apps/cfnagg/straggler-manager.cpp',
+        '../../apps/cfnagg/trace-collector.cpp',
+        '../../apps/cfnagg/fl-payload.cpp',
+    ]

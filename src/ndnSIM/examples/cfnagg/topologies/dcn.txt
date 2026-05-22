@@ -1,0 +1,15 @@
+# Minimal DCN topology for CFNAgg test
+router
+
+# node    comment     yPos    xPos
+Root      NA          1       2
+Agg1      NA          2       2
+Leaf1     NA          3       1
+Leaf2     NA          3       3
+
+link
+
+# srcNode  dstNode    bandwidth   metric  delay   queue
+Root       Agg1       10Mbps      1       2ms     20
+Agg1       Leaf1      10Mbps      1       1ms     20
+Agg1       Leaf2      10Mbps      1       1ms     20

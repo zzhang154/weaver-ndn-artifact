@@ -1,0 +1,5 @@
+# Minimal Aggregation Tree for CFNAgg test
+# Format: ParentNode Child1 Child2 ...
+
+Root Agg1
+Agg1 Leaf1 Leaf2
