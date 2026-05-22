@@ -20,8 +20,6 @@ Public dependencies:
   - Python FL driver in the style of ns3-fl: Python owns the model/data loop, while the network backend transports and aggregates serialized model updates.
 - `scripts/`
   - Helper scripts for applying the ndnSIM overlay and debugging a local ndnSIM run.
-- `docs/`
-  - Supplemental project notes.
 
 ## What Is Not Included
 
