@@ -1,0 +1,23 @@
+{
+  "run_dir": "runs/minindn-quic-exec",
+  "data": {
+    "num_clients": 4,
+    "samples_per_client": 32,
+    "dim": 8,
+    "seed": 7,
+    "client_bias_skew": 0.15
+  },
+  "training": {
+    "rounds": 1,
+    "local_epochs": 1,
+    "local_lr": 0.4
+  },
+  "network": {
+    "backend": "minindn",
+    "execute": true,
+    "payload_format": "quic",
+    "command": "sudo -E env PYTHONPATH=/path/to/mini-ndn:/path/to/mini-ndn/dl/mininet python3 ../miniNDN/examples/weaver_simple.py",
+    "runtime": 8,
+    "seq": 1
+  }
+}

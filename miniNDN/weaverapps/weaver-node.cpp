@@ -13,6 +13,7 @@
 #include <stdexcept>
 
 #include "fl-payload.hpp"
+#include "quic-packet.hpp"
 
 namespace weaver {
 
@@ -51,26 +52,69 @@ joinChildren(const std::vector<std::string>& children)
   return os.str();
 }
 
+uint64_t
+parseContentBytes(const uint8_t* data, size_t size)
+{
+  std::string text(reinterpret_cast<const char*>(data), size);
+  if (text.empty()) {
+    return 0;
+  }
+  return std::stoull(text);
+}
+
+void
+accumulateFlPayload(AggregationBuffer& buffer, const FlPayload& payload)
+{
+  if (!buffer.hasFlPayload) {
+    buffer.hasFlPayload = true;
+    buffer.flWeightedSum.assign(payload.values.size(), 0.0);
+  }
+  if (buffer.flWeightedSum.size() == payload.values.size()) {
+    const uint32_t sampleCount = std::max<uint32_t>(1, payload.sampleCount);
+    buffer.flSampleCount += sampleCount;
+    for (size_t i = 0; i < payload.values.size(); ++i) {
+      buffer.flWeightedSum[i] += payload.values[i] * static_cast<double>(sampleCount);
+    }
+  }
+}
+
 void
 accumulatePayload(AggregationBuffer& buffer, const ndn::Data& data)
 {
+  const auto& content = data.getContent();
+  const uint8_t* contentValue = content.value();
+  const size_t contentSize = content.value_size();
+
   FlPayload payload;
-  if (decodeFlPayload(data.getContent().value(), data.getContent().value_size(), payload)) {
-    if (!buffer.hasFlPayload) {
-      buffer.hasFlPayload = true;
-      buffer.flWeightedSum.assign(payload.values.size(), 0.0);
+  std::vector<uint8_t> quicPayload;
+  if (decodeFlPayload(contentValue, contentSize, payload)) {
+    accumulateFlPayload(buffer, payload);
+    return;
+  }
+
+  if (decodeQuicAggregationPacket(contentValue, contentSize, quicPayload)) {
+    if (decodeFlPayload(quicPayload.data(), quicPayload.size(), payload)) {
+      accumulateFlPayload(buffer, payload);
+      return;
     }
-    if (buffer.flWeightedSum.size() == payload.values.size()) {
-      const uint32_t sampleCount = std::max<uint32_t>(1, payload.sampleCount);
-      buffer.flSampleCount += sampleCount;
-      for (size_t i = 0; i < payload.values.size(); ++i) {
-        buffer.flWeightedSum[i] += payload.values[i] * static_cast<double>(sampleCount);
-      }
-    }
+
+    buffer.partialSum += parseContentBytes(quicPayload.data(), quicPayload.size());
     return;
   }
 
   buffer.partialSum += parseContentValue(data);
+}
+
+std::vector<uint8_t>
+wrapOutgoingContent(const NodeOptions& options, uint64_t seq, const std::vector<uint8_t>& content)
+{
+  if (options.payloadFormat == "quic") {
+    if (seq > std::numeric_limits<uint16_t>::max()) {
+      throw std::runtime_error("QUIC aggregation packet iteration exceeds uint16_t");
+    }
+    return encodeQuicAggregationPacket(static_cast<uint16_t>(seq), content);
+  }
+  return content;
 }
 
 std::vector<uint8_t>
@@ -139,11 +183,7 @@ uint64_t
 parseContentValue(const ndn::Data& data)
 {
   const auto& block = data.getContent();
-  std::string text(reinterpret_cast<const char*>(block.value()), block.value_size());
-  if (text.empty()) {
-    return 0;
-  }
-  return std::stoull(text);
+  return parseContentBytes(block.value(), block.value_size());
 }
 
 ProducerNode::ProducerNode(const NodeOptions& options, ndn::Face& face, ndn::KeyChain& keyChain,
@@ -209,6 +249,7 @@ ProducerNode::onInterest(const ndn::Interest& interest)
     content = encodeFlPayload(payload);
   }
 
+  content = wrapOutgoingContent(m_options, seq, content);
   data->setContent(ndn::make_span(content.data(), content.size()));
   m_keyChain.sign(*data);
   m_face.put(*data);
@@ -382,7 +423,7 @@ AggregatorNode::finishRound(uint64_t seq, bool partial, const std::string& reaso
 
   auto data = std::make_shared<ndn::Data>(buffer.responseName);
   data->setFreshnessPeriod(ndn::time::milliseconds(m_options.freshnessMs));
-  std::vector<uint8_t> content = buildAggregatedContent(buffer);
+  std::vector<uint8_t> content = wrapOutgoingContent(m_options, seq, buildAggregatedContent(buffer));
   data->setContent(ndn::make_span(content.data(), content.size()));
   m_keyChain.sign(*data);
   m_face.put(*data);

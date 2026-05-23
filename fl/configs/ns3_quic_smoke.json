@@ -1,0 +1,21 @@
+{
+  "run_dir": "runs/ns3-quic-smoke",
+  "data": {
+    "num_clients": 10,
+    "client_names": ["pro0", "pro1", "pro2", "pro3", "pro4", "pro5", "pro6", "pro7", "pro8", "pro9"],
+    "samples_per_client": 16,
+    "dim": 8,
+    "seed": 7,
+    "client_bias_skew": 0.15
+  },
+  "training": {
+    "rounds": 3,
+    "local_epochs": 1,
+    "local_lr": 0.4
+  },
+  "network": {
+    "backend": "ns3_quic",
+    "execute": false,
+    "seq": 1
+  }
+}

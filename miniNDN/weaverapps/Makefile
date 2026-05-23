@@ -4,7 +4,7 @@ CXXFLAGS ?= -std=c++17 -O2 -Wall -Wextra
 NDN_CXX_CFLAGS := $(shell pkg-config --cflags libndn-cxx)
 NDN_CXX_LIBS := $(shell pkg-config --libs libndn-cxx)
 
-SRC := main.cpp weaver-node.cpp congestion-control.cpp trace-collector.cpp fl-payload.cpp
+SRC := main.cpp weaver-node.cpp congestion-control.cpp trace-collector.cpp fl-payload.cpp quic-packet.cpp
 OBJ := weaverd
 
 .PHONY: all clean

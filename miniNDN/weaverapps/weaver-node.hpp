@@ -26,6 +26,7 @@ struct NodeOptions
   std::string traceFile;
   std::string payloadDir;
   std::string outputDir;
+  std::string payloadFormat = "wfl1";
   uint64_t value = 1;
   uint64_t iterations = 100;
   int timeoutMs = 1000;

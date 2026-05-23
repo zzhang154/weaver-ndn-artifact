@@ -64,9 +64,11 @@ if __name__ == '__main__':
     weaverd = os.path.join(overlay_root, 'weaverapps', 'weaverd')
     payload_dir = os.environ.get('WEAVER_PAYLOAD_DIR', '')
     output_dir = os.environ.get('WEAVER_OUTPUT_DIR', os.path.join(overlay_root, 'logs'))
+    payload_format = os.environ.get('WEAVER_PAYLOAD_FORMAT', 'wfl1')
     iterations = int(os.environ.get('WEAVER_ITERATIONS', '20'))
     runtime = int(os.environ.get('WEAVER_RUNTIME', '60'))
     no_cli = os.environ.get('WEAVER_NO_CLI', '0') == '1'
+    format_arg = f' --payload-format {payload_format}'
     os.makedirs(os.path.join(overlay_root, 'logs'), exist_ok=True)
     os.makedirs(output_dir, exist_ok=True)
 
@@ -94,21 +96,21 @@ if __name__ == '__main__':
         payload_arg = f' --payload-dir {payload_dir}' if payload_dir else ''
         apps.append(start_app(
             pro,
-            f'{weaverd} --role producer --prefix /{pro.name} --value 1 --trace {trace}{payload_arg}',
+            f'{weaverd} --role producer --prefix /{pro.name} --value 1 --trace {trace}{payload_arg}{format_arg}',
             f'{pro.name}-weaver.log'))
         sleep(1)
 
     apps.append(start_app(
         agg0,
         f'{weaverd} --role aggregator --prefix /agg0 --children /pro0,/pro1 '
-        f'--trace {os.path.join(overlay_root, "logs", "agg0-trace.csv")}',
+        f'--trace {os.path.join(overlay_root, "logs", "agg0-trace.csv")}{format_arg}',
         'agg0-weaver.log'))
     sleep(1)
 
     apps.append(start_app(
         agg1,
         f'{weaverd} --role aggregator --prefix /agg1 --children /pro2,/pro3 '
-        f'--trace {os.path.join(overlay_root, "logs", "agg1-trace.csv")}',
+        f'--trace {os.path.join(overlay_root, "logs", "agg1-trace.csv")}{format_arg}',
         'agg1-weaver.log'))
     sleep(1)
 
@@ -124,7 +126,7 @@ if __name__ == '__main__':
         f'{weaverd} --role root --prefix /con0 --children /agg0,/agg1 '
         f'--iterations {iterations} --cc AIMD --timeout-ms 1000 '
         f'--trace {os.path.join(overlay_root, "logs", "con0-trace.csv")} '
-        f'--output-dir {output_dir}',
+        f'--output-dir {output_dir}{format_arg}',
         'con0-weaver.log'))
 
     sleep(runtime)

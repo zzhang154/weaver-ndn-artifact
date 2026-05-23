@@ -14,6 +14,7 @@ It mirrors the ndnSIM implementation at `../src/ndnSIM/apps/cfnagg/`, but runs a
   - `weaverd`: one binary with `--role producer|aggregator|root`
   - `aggregation-buffer.hpp`: per-sequence partial aggregation state
   - `fl-payload.*`: WFL1 serialized FL model/update payload codec
+  - `quic-packet.*`: QUIC aggregation packet envelope codec for MiniNDN-FL payload compatibility
   - `congestion-control.*`: AIMD, CUBIC, simplified BBR
   - `weaver-node.*`: Root/Aggregator/Producer process logic
   - `trace-collector.*`: CSV event tracing
@@ -52,6 +53,12 @@ Producer:
 ./weaverd --role producer --prefix /pro0 --payload-dir /tmp/weaver-fl/payloads
 ```
 
+To carry the same model update inside the ns-3 QUIC aggregation packet envelope, add:
+
+```bash
+--payload-format quic
+```
+
 Aggregator:
 
 ```bash
@@ -76,6 +83,7 @@ For automated FL runs, `examples/weaver_simple.py` also reads these environment 
 
 - `WEAVER_PAYLOAD_DIR`: producer input WFL1 directory
 - `WEAVER_OUTPUT_DIR`: root aggregate output directory
+- `WEAVER_PAYLOAD_FORMAT`: `wfl1` or `quic`
 - `WEAVER_ITERATIONS`: root aggregation rounds
 - `WEAVER_RUNTIME`: seconds to wait before stopping
 - `WEAVER_NO_CLI=1`: skip the interactive Mini-NDN CLI

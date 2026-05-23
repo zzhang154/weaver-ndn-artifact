@@ -32,7 +32,7 @@ To launch the real ndnSIM backend, set:
 "execute": true
 ```
 
-and apply this overlay to a buildable ns-3/ndnSIM tree before running `./waf`.
+and apply this overlay to a buildable ndnSIM tree before running `./waf`.
 
 The miniNDN backend uses the same WFL1 files. Its smoke config is:
 
@@ -40,4 +40,13 @@ The miniNDN backend uses the same WFL1 files. Its smoke config is:
 python3 weaver_fl.py --config configs/minindn_smoke.json
 ```
 
-For real miniNDN execution, set `network.execute=true` and provide a command that starts the miniNDN experiment. The driver exports `WEAVER_PAYLOAD_DIR`, `WEAVER_OUTPUT_DIR`, `WEAVER_SEQ`, and `WEAVER_PRODUCERS` for that command.
+For real miniNDN execution, set `network.execute=true` and provide a command that starts the miniNDN experiment. The driver exports `WEAVER_PAYLOAD_DIR`, `WEAVER_OUTPUT_DIR`, `WEAVER_SEQ`, `WEAVER_PRODUCERS`, and `WEAVER_PAYLOAD_FORMAT` for that command. With `"payload_format": "quic"`, MiniNDN carries each WFL1 update inside the same QUIC aggregation packet envelope used by the ns-3 QUIC backend.
+
+The ns-3 QUIC aggregation backend is exposed as `ns3_quic`:
+
+```bash
+python3 weaver_fl.py --config configs/ns3_quic_smoke.json
+python3 weaver_fl.py --config configs/ns3_quic_exec.json
+```
+
+The `execute=true` config calls the ns-3.42 QUIC aggregation binary and writes its log to `round-*/outputs/ns3-quic.log`. With `WEAVER_PAYLOAD_DIR` and `WEAVER_OUTPUT_DIR` in the environment, the patched QUIC data plane reads each producer's `WFL1` model update, carries it as QUIC payload bytes, aggregates by sample-weighted averaging inside the QUIC aggregation servers, and writes `aggregate-<seq>.wfl` at the root.

@@ -34,7 +34,8 @@ usage(const char* program)
     << "  --start-delay-ms <n>         root startup delay, default 1000\n"
     << "  --trace <path>               CSV trace file\n"
     << "  --payload-dir <path>         producer input WFL1 files: <producer>-<seq>.wfl\n"
-    << "  --output-dir <path>          root output WFL1 files: aggregate-<seq>.wfl\n";
+    << "  --output-dir <path>          root output WFL1 files: aggregate-<seq>.wfl\n"
+    << "  --payload-format <wfl1|quic> Data content format, default wfl1\n";
 }
 
 std::string
@@ -120,6 +121,7 @@ main(int argc, char* argv[])
     options.traceFile = getString(args, "trace");
     options.payloadDir = getString(args, "payload-dir");
     options.outputDir = getString(args, "output-dir");
+    options.payloadFormat = lower(getString(args, "payload-format", options.payloadFormat));
     options.value = getUint64(args, "value", options.value);
     options.iterations = getUint64(args, "iterations", options.iterations);
     options.timeoutMs = getInt(args, "timeout-ms", options.timeoutMs);
@@ -132,6 +134,9 @@ main(int argc, char* argv[])
     }
     if (options.prefix == "/") {
       throw std::runtime_error("--prefix is required");
+    }
+    if (options.payloadFormat != "wfl1" && options.payloadFormat != "quic") {
+      throw std::runtime_error("--payload-format must be wfl1 or quic");
     }
     if (options.traceFile.empty()) {
       options.traceFile = "logs/weaver-" + options.role + "-" +

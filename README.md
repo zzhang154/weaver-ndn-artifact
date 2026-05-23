@@ -1,54 +1,64 @@
-# Weaver NDN Core
+# Weaver-ndn Core
 
-This repository contains the source code used for the anonymous review artifact. It keeps only the Weaver-owned implementation and experiment glue. It does not vendor ns-3, ndnSIM, Mini-NDN, NFD, NLSR, or ndn-cxx.
+This directory is a lightweight core overlay for the Weaver prototype. It keeps the Weaver-owned ndnSIM application code and the minimum scenario/build files needed to run the artifact. It intentionally does not vendor the full ns-3, ndnSIM, NFD, or ndn-cxx trees.
 
-Public dependencies:
-
-- ndnSIM: https://github.com/named-data-ndnSIM/ndnSIM
-- Mini-NDN: https://github.com/named-data/mini-ndn
-
-## Repository Layout
+## What Is Included
 
 - `src/ndnSIM/apps/cfnagg/`
-  - ndnSIM applications and support code: root, aggregator, producer, aggregation buffer, AIMD/CUBIC/simplified BBR controllers, straggler timeout handling, traces, and WFL1 FL payload serialization.
+  - Weaver-owned NDN applications and support code:
+    - `CFNRootApp`
+    - `CFNAggregatorApp`
+    - `CFNProducerApp`
+    - aggregation buffer
+    - AIMD/CUBIC/simplified-BBR congestion control
+    - straggler timeout manager
+    - trace collector
 - `src/ndnSIM/examples/cfnagg/`
-  - ndnSIM example driver, build file, aggregation tree, and small test topology.
-- `miniNDN/`
-  - Mini-NDN/ndn-cxx implementation of the same root/aggregator/producer design.
-  - Builds one process binary, `weaverd`, with `--role root|aggregator|producer`.
-- `fl/`
-  - Python FL driver in the style of ns3-fl: Python owns the model/data loop, while the network backend transports and aggregates serialized model updates.
+  - Weaver simulation entry point, build file, and example topologies.
+- `src/ndnSIM/examples/wscript`
+  - ndnSIM examples build hook with `bld.recurse('cfnagg')`.
 - `scripts/`
-  - Helper scripts for applying the ndnSIM overlay and debugging a local ndnSIM run.
+  - local debug/rebuild helper scripts.
+- `miniNDN/`
+  - miniNDN/ndn-cxx implementation of the same Weaver Root/Aggregator/Producer design.
+  - builds one process binary, `weaverd`, with `--role root|aggregator|producer`.
+  - can carry FL updates either as raw WFL1 Data content or as a QUIC aggregation packet envelope.
+- `fl/`
+  - Python FL driver/config layer in the style of ns3-fl.
+  - serializes real model updates into WFL1 payloads and calls the Weaver network backend.
+  - supports ndnSIM, miniNDN, and the ns-3 QUIC aggregation backend.
 
-## What Is Not Included
+## What Is Excluded
 
-The repository intentionally excludes:
+These are framework/runtime dependencies, not Weaver core code:
 
 - ns-3 framework files
-- upstream ndnSIM model/helper/utils/examples
-- Mini-NDN itself
-- NFD, NLSR, and ndn-cxx source trees
-- build outputs, caches, logs, traces, and generated WFL1 payloads
+- upstream ndnSIM model/helper/utils/apps examples
+- NFD
+- ndn-cxx
+- Waf caches and Python bytecode
+- runtime logs and packet traces
+- the design prompt under `src/ndnSIM/prompt/`
 
-## Apply The ndnSIM Overlay
+## Overlay Usage
 
-Install ndnSIM in an external ns-3 tree, then apply the Weaver overlay:
+Apply this overlay to an ns-3.35 + ndnSIM 2.9 tree:
 
 ```bash
-./scripts/apply_ndnsim_overlay.sh /path/to/ns-3
+rsync -a src/ndnSIM/apps/cfnagg/ \
+  /path/to/ns-3/src/ndnSIM/apps/cfnagg/
+
+rsync -a src/ndnSIM/examples/cfnagg/ \
+  /path/to/ns-3/src/ndnSIM/examples/cfnagg/
 ```
 
-The script copies:
+Then add this line to the target `src/ndnSIM/examples/wscript` if it is not already present:
 
-```text
-src/ndnSIM/apps/cfnagg/     -> /path/to/ns-3/src/ndnSIM/apps/cfnagg/
-src/ndnSIM/examples/cfnagg/ -> /path/to/ns-3/src/ndnSIM/examples/cfnagg/
+```python
+bld.recurse('cfnagg')
 ```
 
-It also ensures that the target `src/ndnSIM/examples/wscript` recurses into `cfnagg`.
-
-From the ns-3 root:
+Build and run from the ns-3 root:
 
 ```bash
 ./waf configure --disable-python --enable-examples -d debug
@@ -56,28 +66,49 @@ From the ns-3 root:
 ./waf --run "cfnagg-simulation --topology=src/ndnSIM/examples/cfnagg/topologies/dcn.txt --aggTree=src/ndnSIM/examples/cfnagg/topologies/aggtree-dcn.txt --cc=AIMD --simTime=10.0 --logFile=log_file/cfnagg-trace.csv"
 ```
 
-## Build The miniNDN App
+## miniNDN Usage
+
+Build the miniNDN binary:
 
 ```bash
 cd miniNDN/weaverapps
 make
 ```
 
-Run the included Mini-NDN example from the repository root:
+Run the included Mini-NDN example:
 
 ```bash
-sudo -E env PYTHONPATH=/path/to/mini-ndn:/path/to/mini-ndn/dl/mininet \
-  python3 miniNDN/examples/weaver_simple.py
+sudo python3 miniNDN/examples/weaver_simple.py
 ```
 
-## Run FL Smoke Tests
+See `miniNDN/README.md` for the process-level commands and trace locations.
 
-The smoke configs use WFL1 serialized model-update files but keep `network.execute=false`, so they check the FL loop without launching waf or Mini-NDN:
+## FL Usage
+
+Run the first-stage FL smoke loop:
 
 ```bash
 cd fl
 python3 weaver_fl.py --config configs/ndnsim_smoke.json
-python3 weaver_fl.py --config configs/minindn_smoke.json
+python3 weaver_fl.py --config configs/ns3_quic_smoke.json
 ```
 
-For real backends, copy one of the `.example.json` files, edit the external paths, and set `network.execute=true`.
+The smoke config uses the same WFL1 serialized model-update files as ndnSIM, but keeps `network.execute=false` so the training loop can be checked without launching waf. Set `execute=true` after applying the overlay to a buildable ndnSIM tree.
+
+For the local ns-3 QUIC aggregation tree, use:
+
+```bash
+python3 weaver_fl.py --config configs/ns3_quic_exec.json
+```
+
+This invokes the ns-3.42 QUIC aggregation binary. The patched QUIC data plane reads `WFL1` model updates from the round payload directory, transports them as QUIC payload bytes, performs sample-weighted in-network aggregation, and writes the root `aggregate-<seq>.wfl`.
+
+MiniNDN can exercise the same QUIC application-packet envelope over NDN Data with:
+
+```bash
+python3 weaver_fl.py --config configs/minindn_quic_exec.example.json
+```
+
+## Source Notes
+
+The repository contains only the artifact overlay and intentionally omits local workstation paths, private remotes, generated build products, packet traces, and runtime logs.
