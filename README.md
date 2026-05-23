@@ -1,4 +1,4 @@
-# Weaver-ndn Core
+# Weaver Core Artifact
 
 This directory is a lightweight core overlay for the Weaver prototype. It keeps the Weaver-owned ndnSIM application code and the minimum scenario/build files needed to run the artifact. It intentionally does not vendor the full ns-3, ndnSIM, NFD, or ndn-cxx trees.
 
@@ -22,11 +22,10 @@ This directory is a lightweight core overlay for the Weaver prototype. It keeps 
 - `miniNDN/`
   - miniNDN/ndn-cxx implementation of the same Weaver Root/Aggregator/Producer design.
   - builds one process binary, `weaverd`, with `--role root|aggregator|producer`.
-  - can carry FL updates either as raw WFL1 Data content or as a QUIC aggregation packet envelope.
 - `fl/`
   - Python FL driver/config layer in the style of ns3-fl.
   - serializes real model updates into WFL1 payloads and calls the Weaver network backend.
-  - supports ndnSIM, miniNDN, and the ns-3 QUIC aggregation backend.
+  - primary backends are the Weaver ndnSIM and MiniNDN implementations; ns-3 QUIC is included only as an optional baseline.
 
 ## What Is Excluded
 
@@ -90,23 +89,16 @@ Run the first-stage FL smoke loop:
 ```bash
 cd fl
 python3 weaver_fl.py --config configs/ndnsim_smoke.json
+python3 weaver_fl.py --config configs/minindn_smoke.json
+```
+
+The smoke configs use the same WFL1 serialized model-update files as the Weaver NDN backends, but keep `network.execute=false` so the training loop can be checked without launching waf or MiniNDN. Set `execute=true` after applying the overlay to a buildable ndnSIM tree or configuring the MiniNDN command.
+
+Optional baseline configs for the ns-3 QUIC aggregation tree are also provided:
+
+```bash
 python3 weaver_fl.py --config configs/ns3_quic_smoke.json
-```
-
-The smoke config uses the same WFL1 serialized model-update files as ndnSIM, but keeps `network.execute=false` so the training loop can be checked without launching waf. Set `execute=true` after applying the overlay to a buildable ndnSIM tree.
-
-For the local ns-3 QUIC aggregation tree, use:
-
-```bash
-python3 weaver_fl.py --config configs/ns3_quic_exec.json
-```
-
-This invokes the ns-3.42 QUIC aggregation binary. The patched QUIC data plane reads `WFL1` model updates from the round payload directory, transports them as QUIC payload bytes, performs sample-weighted in-network aggregation, and writes the root `aggregate-<seq>.wfl`.
-
-MiniNDN can exercise the same QUIC application-packet envelope over NDN Data with:
-
-```bash
-python3 weaver_fl.py --config configs/minindn_quic_exec.example.json
+python3 weaver_fl.py --config configs/ns3_quic_exec.example.json
 ```
 
 ## Source Notes
